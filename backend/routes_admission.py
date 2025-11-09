@@ -23,11 +23,24 @@ def register_student():
         password = dob.strftime("%d%m%y")
 
         conn = get_db_connection()
+        # Fetch default institution, branch, and course IDs
         cursor = conn.cursor()
+        cursor.execute("SELECT TOP 1 InstitutionID FROM Institutions ORDER BY InstitutionID ASC")
+        institution_id = cursor.fetchone()[0]
+
+        cursor.execute("SELECT TOP 1 BranchID FROM Branches WHERE BranchCode = 'NEC09'")
+        branch_id = cursor.fetchone()[0]
+
+        cursor.execute("SELECT TOP 1 CourseID FROM Courses WHERE CourseCode = ?", (course,))
+        course_id = cursor.fetchone()[0]
+
+        # Insert student record (updated)
         cursor.execute("""
-            INSERT INTO Students (TokenNumber, FullName, CourseCode, BatchYear, DOB, Email, Password)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (token_number, full_name, course, batch, dob, email, password))
+        INSERT INTO Students (TokenNumber, FullName, CourseCode, BatchYear, DOB, Email, Password, InstitutionID, BranchID, CourseID)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (token_number, full_name, course, batch, dob, email, password, institution_id, branch_id, course_id))
+
+      
         conn.commit()
         conn.close()
 

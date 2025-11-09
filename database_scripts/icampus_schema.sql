@@ -1,11 +1,12 @@
 -- ==============================================================
 --  I_Campus Project - SQL Server Database Schema Setup Script
 --  Author: Thilak A R
---  Description: Base schema for I_Campus College Management System
---  Includes: Database creation + Student, Roles, Institution, Branch, Course tables
+--  Description: Full base schema for I_Campus College Management System
+--  Includes: Student, Roles, Institution, Branch, Course, Attendance,
+--            RFID/Biometric, Modules, and supporting tables
 -- ==============================================================
 
--- Create database (run only once)
+-- Create database
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'Thilak')
 BEGIN
     CREATE DATABASE Thilak;
@@ -19,9 +20,8 @@ USE Thilak;
 GO
 
 -- ==============================================================
--- Table: Students
+-- Students Table
 -- ==============================================================
-
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Students' AND xtype='U')
 BEGIN
     CREATE TABLE Students (
@@ -37,14 +37,11 @@ BEGIN
     );
     PRINT('Table "Students" created successfully.');
 END
-ELSE
-    PRINT('Table "Students" already exists.');
 GO
 
 -- ==============================================================
--- Table: UserRoles
+-- User Roles
 -- ==============================================================
-
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='UserRoles' AND xtype='U')
 BEGIN
     CREATE TABLE UserRoles (
@@ -54,15 +51,11 @@ BEGIN
     );
     PRINT('Table "UserRoles" created successfully.');
 END
-ELSE
-    PRINT('Table "UserRoles" already exists.');
 GO
 
 -- ==============================================================
--- Multi-Branch Core Tables
+-- Institutions, Branches, Courses, Departments
 -- ==============================================================
-
--- INSTITUTIONS
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Institutions' AND xtype='U')
 BEGIN
     CREATE TABLE Institutions (
@@ -72,11 +65,9 @@ BEGIN
         EmailDomain NVARCHAR(50) DEFAULT 'nttf.co.in',
         CreatedOn DATETIME DEFAULT GETDATE()
     );
-    PRINT('Table "Institutions" created.');
 END
 GO
 
--- BRANCHES
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Branches' AND xtype='U')
 BEGIN
     CREATE TABLE Branches (
@@ -92,11 +83,9 @@ BEGIN
         ModulesEnabled NVARCHAR(MAX) DEFAULT 'All',
         CreatedOn DATETIME DEFAULT GETDATE()
     );
-    PRINT('Table "Branches" created.');
 END
 GO
 
--- COURSES
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Courses' AND xtype='U')
 BEGIN
     CREATE TABLE Courses (
@@ -107,11 +96,9 @@ BEGIN
         DurationYears INT DEFAULT 3,
         IsActive BIT DEFAULT 1
     );
-    PRINT('Table "Courses" created.');
 END
 GO
 
--- DEPARTMENTS
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Departments' AND xtype='U')
 BEGIN
     CREATE TABLE Departments (
@@ -122,14 +109,12 @@ BEGIN
         HeadName NVARCHAR(100),
         IsActive BIT DEFAULT 1
     );
-    PRINT('Table "Departments" created.');
 END
 GO
 
 -- ==============================================================
---  MODIFY STUDENTS TABLE TO LINK INSTITUTION, BRANCH, COURSE
+-- Modify Students table to link Institution, Branch, Course
 -- ==============================================================
-
 IF COL_LENGTH('Students', 'InstitutionID') IS NULL
     ALTER TABLE Students ADD InstitutionID INT NULL FOREIGN KEY REFERENCES Institutions(InstitutionID);
 IF COL_LENGTH('Students', 'BranchID') IS NULL
@@ -139,33 +124,111 @@ IF COL_LENGTH('Students', 'CourseID') IS NULL
 GO
 
 -- ==============================================================
---  Sample Data
+-- Modules and BranchModules
 -- ==============================================================
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Modules' AND xtype='U')
+BEGIN
+    CREATE TABLE Modules (
+        ModuleID INT IDENTITY(1,1) PRIMARY KEY,
+        ModuleName NVARCHAR(100) UNIQUE NOT NULL,
+        Description NVARCHAR(200),
+        IsCore BIT DEFAULT 0
+    );
+END
+GO
 
--- Institution
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BranchModules' AND xtype='U')
+BEGIN
+    CREATE TABLE BranchModules (
+        BranchModuleID INT IDENTITY(1,1) PRIMARY KEY,
+        BranchID INT FOREIGN KEY REFERENCES Branches(BranchID),
+        ModuleID INT FOREIGN KEY REFERENCES Modules(ModuleID),
+        IsEnabled BIT DEFAULT 1,
+        LastModified DATETIME DEFAULT GETDATE(),
+        ModifiedBy NVARCHAR(50)
+    );
+END
+GO
+
+-- ==============================================================
+-- Attendance System: ClassSchedule, RFID_Logs, Biometric_Logs, Attendance
+-- ==============================================================
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ClassSchedule' AND xtype='U')
+BEGIN
+    CREATE TABLE ClassSchedule (
+        ScheduleID INT IDENTITY(1,1) PRIMARY KEY,
+        CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+        SubjectName NVARCHAR(100),
+        TeacherToken NVARCHAR(20),
+        StartTime TIME,
+        EndTime TIME,
+        DayOfWeek NVARCHAR(10)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='RFID_Logs' AND xtype='U')
+BEGIN
+    CREATE TABLE RFID_Logs (
+        RFIDLogID INT IDENTITY(1,1) PRIMARY KEY,
+        TokenNumber NVARCHAR(20),
+        ReaderLocation NVARCHAR(50),
+        ScanTime DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Biometric_Logs' AND xtype='U')
+BEGIN
+    CREATE TABLE Biometric_Logs (
+        BioLogID INT IDENTITY(1,1) PRIMARY KEY,
+        TokenNumber NVARCHAR(20),
+        DeviceLocation NVARCHAR(50),
+        ScanTime DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Attendance' AND xtype='U')
+BEGIN
+    CREATE TABLE Attendance (
+        AttendanceID INT IDENTITY(1,1) PRIMARY KEY,
+        TokenNumber NVARCHAR(20),
+        CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+        ScheduleID INT FOREIGN KEY REFERENCES ClassSchedule(ScheduleID),
+        AttendanceDate DATE DEFAULT GETDATE(),
+        Status NVARCHAR(20) DEFAULT 'Pending',
+        RFIDDetected BIT DEFAULT 0,
+        BiometricDetected BIT DEFAULT 0,
+        FlagReason NVARCHAR(100),
+        VerifiedBy NVARCHAR(20),
+        LastUpdated DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- ==============================================================
+-- Sample Data
+-- ==============================================================
 IF NOT EXISTS (SELECT * FROM Institutions WHERE InstitutionCode = 'NTTF001')
     INSERT INTO Institutions (InstitutionName, InstitutionCode)
     VALUES ('NTTF', 'NTTF001');
 
--- Branch
 IF NOT EXISTS (SELECT * FROM Branches WHERE BranchCode = 'NEC09')
     INSERT INTO Branches (InstitutionID, BranchName, BranchCode, City, State)
     VALUES (1, 'NEC', 'NEC09', 'Bangalore', 'Karnataka');
 
--- Course
 IF NOT EXISTS (SELECT * FROM Courses WHERE CourseCode = 'CP09')
     INSERT INTO Courses (BranchID, CourseName, CourseCode, DurationYears)
     VALUES (1, 'Computer Programming', 'CP09', 3);
 
--- Student
 IF NOT EXISTS (SELECT * FROM Students WHERE TokenNumber = 'NECCP0925001')
     INSERT INTO Students (TokenNumber, FullName, CourseCode, BatchYear, DOB, Email, Password, InstitutionID, BranchID, CourseID)
     VALUES ('NECCP0925001', 'Test Student', 'CP09', 2025, '2004-06-29', 'neccp0925001@nttf.co.in', '290604', 1, 1, 1);
 
--- User Role
 IF NOT EXISTS (SELECT * FROM UserRoles WHERE TokenNumber = 'NECCP0925001')
     INSERT INTO UserRoles (TokenNumber, RoleName)
     VALUES ('NECCP0925001', 'student');
 
-PRINT('Sample records inserted successfully.');
+PRINT('Base setup completed successfully.');
 GO

@@ -106,6 +106,7 @@ def admin_dashboard():
         "message": "Welcome, Admin! Here's your overview."
     })
 
+
 @auth_bp.route('/superadmin/dashboard', methods=['GET'])
 @role_required(["superadmin"])
 def superadmin_dashboard():
@@ -114,3 +115,20 @@ def superadmin_dashboard():
         "dashboard": "superadmin_dashboard",
         "message": "Welcome Super Admin — full system access granted."
     })
+
+@auth_bp.route('/system/hierarchy', methods=['GET'])
+@role_required(["superadmin", "admin"])
+def view_hierarchy():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT I.InstitutionName, B.BranchName, C.CourseName
+        FROM Institutions I
+        JOIN Branches B ON I.InstitutionID = B.InstitutionID
+        JOIN Courses C ON B.BranchID = C.BranchID
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    data = [{"Institution": r[0], "Branch": r[1], "Course": r[2]} for r in rows]
+    return jsonify({"status": "success", "hierarchy": data})
