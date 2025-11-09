@@ -5,10 +5,19 @@ from routes_admission import admission_bp
 from routes_auth import auth_bp
 import os
 from routes_modules import modules_bp
+from routes_attendance import attendance_bp
+from routes_latecomer_leave import lateleave_bp
+from routes_events import events_bp
+from routes_lms import lms_bp
+
 
 
 app = Flask(__name__)
 app.register_blueprint(modules_bp)
+app.register_blueprint(attendance_bp)
+app.register_blueprint(lateleave_bp)
+app.register_blueprint(events_bp)
+app.register_blueprint(lms_bp)
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-change-me")
