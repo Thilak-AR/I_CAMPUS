@@ -14,9 +14,7 @@ from routes_exams import exams_bp
 from routes_transport_hostel import th_bp
 from routes_library import library_bp
 from routes_placement import placement_bp
-
-
-
+from routes_security import security_bp
 
 
 app = Flask(__name__)
@@ -30,6 +28,8 @@ app.register_blueprint(exams_bp)
 app.register_blueprint(th_bp)
 app.register_blueprint(library_bp)
 app.register_blueprint(placement_bp)
+app.register_blueprint(security_bp)
+
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-change-me")
