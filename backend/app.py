@@ -9,6 +9,8 @@ from routes_attendance import attendance_bp
 from routes_latecomer_leave import lateleave_bp
 from routes_events import events_bp
 from routes_lms import lms_bp
+from routes_finance import finance_bp
+
 
 
 
@@ -18,6 +20,7 @@ app.register_blueprint(attendance_bp)
 app.register_blueprint(lateleave_bp)
 app.register_blueprint(events_bp)
 app.register_blueprint(lms_bp)
+app.register_blueprint(finance_bp)
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-change-me")
