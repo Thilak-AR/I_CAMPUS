@@ -4,8 +4,11 @@ from flask_jwt_extended import JWTManager
 from routes_admission import admission_bp
 from routes_auth import auth_bp
 import os
+from routes_modules import modules_bp
+
 
 app = Flask(__name__)
+app.register_blueprint(modules_bp)
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret-change-me")
